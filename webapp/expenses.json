@@ -1,0 +1,18 @@
+[
+    {
+        "id": "3ad76e9b-090e-4797-bf20-fe238abc3747",
+        "date": "2025-07-05",
+        "description": "grocery",
+        "amount": 500.0,
+        "category": "Food",
+        "timestamp": "2025-07-05T09:15:46.217170"
+    },
+    {
+        "id": "bc2b8474-57b0-4c86-a915-4100c76e2ffa",
+        "date": "2025-07-06",
+        "description": "sweets",
+        "amount": 200.0,
+        "category": "Food",
+        "timestamp": "2025-07-06T09:00:36.262960"
+    }
+]
