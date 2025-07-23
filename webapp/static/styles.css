@@ -1,0 +1,197 @@
+        :root {
+            --color-primary-500: #3b82f6;
+            --color-primary-600: #2563eb;
+        }
+        
+        body {
+            background-color: #f8fafc;
+            color: #1e293b;
+        }
+        
+        /* .sidebar {
+            width: 280px;
+            transition: all 0.3s;
+        } */
+        
+        .main-content {
+            /* margin-left: 280px; */
+            transition: all 0.3s;
+        }
+        
+        @media (max-width: 1024px) {
+            .sidebar {
+                transform: translateX(-100%);
+                position: fixed;
+                z-index: 50;
+                height: 100vh;
+            }
+            .sidebar.active {
+                transform: translateX(0);
+            }
+            .main-content {
+                margin-left: 0;
+            }
+        }
+        
+        .card {
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        
+        .card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+        }
+        
+        .expense-table {
+            max-height: 500px;
+        }
+        
+        .skeleton {
+            animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+            background-color: #e2e8f0;
+        }
+        
+        @keyframes pulse {
+            0%, 100% {
+                opacity: 1;
+            }
+            50% {
+                opacity: 0.5;
+            }
+        }
+        
+        .toast {
+            animation: slideIn 0.3s ease-out, fadeOut 0.5s ease-out 2.5s forwards;
+        }
+        
+        @keyframes slideIn {
+            from {
+                transform: translateY(-20px);
+                opacity: 0;
+            }
+            to {
+                transform: translateY(0);
+                opacity: 1;
+            }
+        }
+        
+        @keyframes fadeOut {
+            to {
+                opacity: 0;
+            }
+        }
+
+.fab-container {
+        position: fixed;
+        bottom: 2rem;
+        right: 2rem;
+        display: flex;
+        flex-direction: column-reverse;
+        align-items: flex-end;
+        gap: 1rem;
+        z-index: 100;
+    }
+
+    .fab {
+        width: 56px;
+        height: 56px;
+        border-radius: 28px;
+        display: flex;
+        align-items: center;
+        justify-content: flex-start;;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+        overflow: hidden;
+        padding: 0 16px;
+    }
+
+    .fab-expense {
+        background-color: #ef4444; /* Red */
+    }
+
+    .fab-income {
+        background-color: #10b981; /* Green */
+    }
+
+    .fab:hover {
+        width: auto;
+        padding: 0 20px;
+    }
+
+    .fab-content {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        width: 100%;
+        justify-content: flex-start;
+    }
+
+    .fab i {
+        font-size: 24px;
+        color: white;
+    }
+
+    .fab-text {
+        font-family: 'Inter', 'Segoe UI', 'Roboto', sans-serif !important;
+        color: white;
+        font-weight: 500;
+        opacity: 0;
+        transition: opacity 0.3s ease;
+    }
+
+    .fab:hover .fab-text {
+        opacity: 1;
+    }
+
+    /* Expanded form styles */
+    .fab-form {
+        position: fixed;
+        bottom: 2rem;
+        right: 2rem;
+        width: 300px;
+        background: white;
+        border-radius: 12px;
+        padding: 20px;
+        box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
+        z-index: 101;
+        transform: scale(0);
+        transform-origin: bottom right;
+        transition: transform 0.3s ease;
+    }
+
+    .fab-form.active {
+        transform: scale(1);
+    }
+
+    .fab-form-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 16px;
+    }
+
+    .fab-form-title {
+        font-size: 18px;
+        font-weight: 600;
+    }
+
+    .fab-form-close {
+        background: none;
+        border: none;
+        font-size: 20px;
+        cursor: pointer;
+        color: #6b7280;
+    }
+
+    .fab-form-body {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+    }
+
+    .fab-form-footer {
+        margin-top: 16px;
+        display: flex;
+        justify-content: flex-end;
+    }
