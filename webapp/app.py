@@ -12,19 +12,19 @@ app = Flask(__name__, static_folder='static')
 CORS(app)
 
 # Configuration
-EXPENSES_FILE = 'demo_expenses.json'
-INCOME_CATEGORIES = ['Salary', 'Freelance', 'Refunds/Cashbacks', 'Other Income']
-EXPENSE_CATEGORIES = ['Food & Dining', 'Transport', 'Shopping', 'Bills & Utilities','Education / Learning', 'Household and Transfers', 'Entertainment', 'Health', "Miscellaneous"]
+TRANSACTIONS_FILE = 'transactions.json'
+CREDIT_CATEGORIES = ['Salary', 'Freelance', 'Refunds/Cashbacks', 'Other Income']
+DEBIT_CATEGORIES = ['Food & Dining', 'Transport', 'Shopping', 'Bills & Utilities','Education / Learning', 'Household and Transfers', 'Entertainment', 'Health', "Miscellaneous"]
 DEFAULT_CURRENCY = 'INR'
 
 # --- Helper Functions ---
-def load_expenses():
+def load_transactions():
     """Enhanced with error handling and data validation"""
-    if not os.path.exists(EXPENSES_FILE):
+    if not os.path.exists(TRANSACTIONS_FILE):
         return []
     
     try:
-        with open(EXPENSES_FILE, 'r') as f:
+        with open(TRANSACTIONS_FILE, 'r') as f:
             data = json.load(f)
             # Validate each entry
             validated_data = []
@@ -36,14 +36,14 @@ def load_expenses():
         print(f"Error loading data: {str(e)}")
         return []
 
-def save_expenses(entries_list):
+def save_transactions(entries_list):
     """Atomic write operation with backup"""
-    temp_file = f"{EXPENSES_FILE}.tmp"
+    temp_file = f"{TRANSACTIONS_FILE}.tmp"
     try:
         with open(temp_file, 'w') as f:
             json.dump(entries_list, f, indent=4)
         # Replace original file only if write was successful
-        os.replace(temp_file, EXPENSES_FILE)
+        os.replace(temp_file, TRANSACTIONS_FILE)
     except IOError as e:
         print(f"Error saving data: {str(e)}")
         if os.path.exists(temp_file):
@@ -63,7 +63,7 @@ def validate_entry_data(data, entry_type):
     except ValueError:
         return False, "Invalid amount format"
     
-    valid_categories = INCOME_CATEGORIES if entry_type == 'income' else EXPENSE_CATEGORIES
+    valid_categories = CREDIT_CATEGORIES if entry_type == 'credit' else DEBIT_CATEGORIES
     if data['category'] not in valid_categories:
         return False, f"Invalid category for {entry_type}"
     
@@ -90,10 +90,10 @@ def send_static(path):
 def get_entries():
     """Get all entries with filtering support"""
     try:
-        entries = load_expenses()
+        entries = load_transactions()
         
         # Filtering parameters
-        entry_type = request.args.get('type')  # 'income' or 'expense'
+        entry_type = request.args.get('type')  # 'credit' or 'debit'
         category = request.args.get('category')
         start_date = request.args.get('start_date')
         end_date = request.args.get('end_date')
@@ -124,55 +124,55 @@ def get_entries():
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
-@app.route('/api/expenses', methods=['POST'])
-def add_expense():
-    """Add a new expense entry"""
+@app.route('/api/debits', methods=['POST'])
+def add_debit():
+    """Add a new debit entry"""
     try:
         data = request.get_json()
-        valid, message = validate_entry_data(data, 'expense')
+        valid, message = validate_entry_data(data, 'debit')
         if not valid:
             return jsonify({"error": message}), 400
         
-        new_expense = {
+        new_debit = {
             "id": str(uuid.uuid4()),
             "date": data['date'],
             "description": data['description'],
             "amount": float(data['amount']),
             "category": data['category'],
-            "type": "expense",
+            "type": "debit",
             "timestamp": datetime.now().isoformat()
         }
 
-        expenses = load_expenses()
-        expenses.append(new_expense)
-        save_expenses(expenses)
-        return jsonify(new_expense), 201
+        transactions = load_transactions()
+        transactions.append(new_debit)
+        save_transactions(transactions)
+        return jsonify(new_debit), 201
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
-@app.route('/api/incomes', methods=['POST'])
-def add_income():
-    """Add a new income entry"""
+@app.route('/api/credits', methods=['POST'])
+def add_credit():
+    """Add a new credit entry"""
     try:
         data = request.get_json()
-        valid, message = validate_entry_data(data, 'income')
+        valid, message = validate_entry_data(data, 'credit')
         if not valid:
             return jsonify({"error": message}), 400
         
-        new_income = {
+        new_credit = {
             "id": str(uuid.uuid4()),
             "date": data['date'],
             "description": data['description'],
             "amount": float(data['amount']),
             "category": data['category'],
-            "type": "income",
+            "type": "credit",
             "timestamp": datetime.now().isoformat()
         }
 
-        expenses = load_expenses()
-        expenses.append(new_income)
-        save_expenses(expenses)
-        return jsonify(new_income), 201
+        transactions = load_transactions()
+        transactions.append(new_credit)
+        save_transactions(transactions)
+        return jsonify(new_credit), 201
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
@@ -181,10 +181,10 @@ def update_entry(entry_id):
     """Update an existing entry"""
     try:
         data = request.get_json()
-        expenses = load_expenses()
+        transactions = load_transactions()
         
         # Find the entry
-        entry = next((e for e in expenses if e['id'] == entry_id), None)
+        entry = next((e for e in transactions if e['id'] == entry_id), None)
         if not entry:
             return jsonify({"error": "Entry not found"}), 404
         
@@ -203,7 +203,7 @@ def update_entry(entry_id):
             "timestamp": datetime.now().isoformat()
         })
         
-        save_expenses(expenses)
+        save_transactions(transactions)
         return jsonify(entry), 200
     except Exception as e:
         return jsonify({"error": str(e)}), 500
@@ -212,14 +212,14 @@ def update_entry(entry_id):
 def delete_entry(entry_id):
     """Delete an entry"""
     try:
-        expenses = load_expenses()
-        original_len = len(expenses)
-        expenses = [e for e in expenses if e['id'] != entry_id]
+        transactions = load_transactions()
+        original_len = len(transactions)
+        transactions = [e for e in transactions if e['id'] != entry_id]
 
-        if len(expenses) == original_len:
+        if len(transactions) == original_len:
             return jsonify({"error": "Entry not found"}), 404
         
-        save_expenses(expenses)
+        save_transactions(transactions)
         return jsonify({"message": "Entry deleted successfully"}), 200
     except Exception as e:
         return jsonify({"error": str(e)}), 500
@@ -228,22 +228,22 @@ def delete_entry(entry_id):
 def get_summary():
     """Enhanced analytics endpoint with 30-day focus and all required data"""
     try:
-        entries = load_expenses()
+        entries = load_transactions()
         
         if not entries:
             return jsonify({
-                "total_expenses": 0,
-                "total_income": 0,
-                "net_savings": 0,
+                "total_debits": 0,
+                "total_credits": 0,
+                "net_balance": 0,
                 "daily_average": 0,
-                "percent_change_income": 0,
-                "percent_change_expenses": 0,
-                "percent_change_savings": 0,
+                "percent_change_credits": 0,
+                "percent_change_debits": 0,
+                "percent_change_balance": 0,
                 "percent_change_daily": 0,
-                "highest_spending_day": {"date": None, "amount": 0},
-                "highest_income_day": {"date": None, "amount": 0},
-                "highest_spending_category": {"category": None, "amount": 0},
-                "highest_income_category": {"category": None, "amount": 0}
+                "highest_debit_day": {"date": None, "amount": 0},
+                "highest_credit_day": {"date": None, "amount": 0},
+                "highest_debit_category": {"category": None, "amount": 0},
+                "highest_credit_category": {"category": None, "amount": 0}
             })
         
         # Current period (last 30 days)
@@ -260,16 +260,16 @@ def get_summary():
                           datetime.strptime(e['date'], '%Y-%m-%d') < current_start_date]
         
         # Calculate current period metrics
-        current_income = sum(float(e['amount']) for e in current_entries if e['type'] == 'income')
-        current_expenses = sum(float(e['amount']) for e in current_entries if e['type'] == 'expense')
-        current_net = current_income - current_expenses
-        current_daily_avg = current_expenses / 30  # Average over 30 days
+        current_credits = sum(float(e['amount']) for e in current_entries if e['type'] == 'credit')
+        current_debits = sum(float(e['amount']) for e in current_entries if e['type'] == 'debit')
+        current_net = current_credits - current_debits
+        current_daily_avg = current_debits / 30  # Average over 30 days
         
         # Calculate previous period metrics
-        previous_income = sum(float(e['amount']) for e in previous_entries if e['type'] == 'income')
-        previous_expenses = sum(float(e['amount']) for e in previous_entries if e['type'] == 'expense')
-        previous_net = previous_income - previous_expenses
-        previous_daily_avg = previous_expenses / 30
+        previous_credits = sum(float(e['amount']) for e in previous_entries if e['type'] == 'credit')
+        previous_debits = sum(float(e['amount']) for e in previous_entries if e['type'] == 'debit')
+        previous_net = previous_credits - previous_debits
+        previous_daily_avg = previous_debits / 30
         
         # Calculate percentage changes
         def calculate_change(current, previous):
@@ -277,51 +277,51 @@ def get_summary():
                 return 0
             return ((current - previous) / previous) * 100
         
-        # Find highest spending/income days and categories (for current period)
-        daily_expenses = defaultdict(float)
-        daily_incomes = defaultdict(float)
-        expense_categories = defaultdict(float)
-        income_categories = defaultdict(float)
+        # Find highest debit/credit days and categories (for current period)
+        daily_debits = defaultdict(float)
+        daily_credits = defaultdict(float)
+        debit_categories = defaultdict(float)
+        credit_categories = defaultdict(float)
         
         for entry in current_entries:
             amount = float(entry['amount'])
-            if entry['type'] == 'income':
-                daily_incomes[entry['date']] += amount
-                income_categories[entry['category']] += amount
+            if entry['type'] == 'credit':
+                daily_credits[entry['date']] += amount
+                credit_categories[entry['category']] += amount
             else:
-                daily_expenses[entry['date']] += amount
-                expense_categories[entry['category']] += amount
+                daily_debits[entry['date']] += amount
+                debit_categories[entry['category']] += amount
         
         # Get highest values
-        highest_spending_day = max(daily_expenses.items(), key=lambda x: x[1], default=(None, 0))
-        highest_income_day = max(daily_incomes.items(), key=lambda x: x[1], default=(None, 0))
-        highest_spending_category = max(expense_categories.items(), key=lambda x: x[1], default=(None, 0))
-        highest_income_category = max(income_categories.items(), key=lambda x: x[1], default=(None, 0))
+        highest_debit_day = max(daily_debits.items(), key=lambda x: x[1], default=(None, 0))
+        highest_credit_day = max(daily_credits.items(), key=lambda x: x[1], default=(None, 0))
+        highest_debit_category = max(debit_categories.items(), key=lambda x: x[1], default=(None, 0))
+        highest_credit_category = max(credit_categories.items(), key=lambda x: x[1], default=(None, 0))
         
         return jsonify({
-            "total_expenses": round(current_expenses, 2),
-            "total_income": round(current_income, 2),
-            "net_savings": round(current_net, 2),
+            "total_debits": round(current_debits, 2),
+            "total_credits": round(current_credits, 2),
+            "net_balance": round(current_net, 2),
             "daily_average": round(current_daily_avg, 2),
-            "percent_change_income": round(calculate_change(current_income, previous_income), 1),
-            "percent_change_expenses": round(calculate_change(current_expenses, previous_expenses), 1),
-            "percent_change_savings": round(calculate_change(current_net, previous_net), 1),
+            "percent_change_credits": round(calculate_change(current_credits, previous_credits), 1),
+            "percent_change_debits": round(calculate_change(current_debits, previous_debits), 1),
+            "percent_change_balance": round(calculate_change(current_net, previous_net), 1),
             "percent_change_daily": round(calculate_change(current_daily_avg, previous_daily_avg), 1),
-            "highest_spending_day": {
-                "date": highest_spending_day[0],
-                "amount": round(highest_spending_day[1], 2)
+            "highest_debit_day": {
+                "date": highest_debit_day[0],
+                "amount": round(highest_debit_day[1], 2)
             },
-            "highest_income_day": {
-                "date": highest_income_day[0],
-                "amount": round(highest_income_day[1], 2)
+            "highest_credit_day": {
+                "date": highest_credit_day[0],
+                "amount": round(highest_credit_day[1], 2)
             },
-            "highest_spending_category": {
-                "category": highest_spending_category[0],
-                "amount": round(highest_spending_category[1], 2)
+            "highest_debit_category": {
+                "category": highest_debit_category[0],
+                "amount": round(highest_debit_category[1], 2)
             },
-            "highest_income_category": {
-                "category": highest_income_category[0],
-                "amount": round(highest_income_category[1], 2)
+            "highest_credit_category": {
+                "category": highest_credit_category[0],
+                "amount": round(highest_credit_category[1], 2)
             }
         })
     except Exception as e:
@@ -331,7 +331,7 @@ def get_summary():
 def get_trend_chart_data():
     """Enhanced trend chart data with type filtering"""
     try:
-        entries = load_expenses()
+        entries = load_transactions()
         
         # Get filters from request
         timeframe = request.args.get('timeframe', default='30', type=str)
@@ -348,14 +348,14 @@ def get_trend_chart_data():
         
         # Group by date and type
         dates = sorted(list(set(e['date'] for e in filtered)))
-        daily_data = {date: {'income': 0, 'expense': 0} for date in dates}
+        daily_data = {date: {'credit': 0, 'debit': 0} for date in dates}
         
         for entry in filtered:
             amount = float(entry['amount'])
-            if entry['type'] == 'income':
-                daily_data[entry['date']]['income'] += amount
+            if entry['type'] == 'credit':
+                daily_data[entry['date']]['credit'] += amount
             else:
-                daily_data[entry['date']]['expense'] += amount
+                daily_data[entry['date']]['debit'] += amount
         
         # Prepare response based on chart type
         response = {
@@ -363,18 +363,18 @@ def get_trend_chart_data():
             "datasets": []
         }
         
-        if chart_type in ['hybrid', 'income']:
+        if chart_type in ['hybrid', 'credit']:
             response["datasets"].append({
-                "label": "Income",
-                "data": [daily_data[date]['income'] for date in dates],
+                "label": "Credits",
+                "data": [daily_data[date]['credit'] for date in dates],
                 "backgroundColor": "rgba(16, 185, 129, 0.7)",
                 "borderColor": "rgba(16, 185, 129, 1)"
             })
         
-        if chart_type in ['hybrid', 'expense']:
+        if chart_type in ['hybrid', 'debit']:
             response["datasets"].append({
-                "label": "Expense",
-                "data": [daily_data[date]['expense'] for date in dates],
+                "label": "Debits",
+                "data": [daily_data[date]['debit'] for date in dates],
                 "backgroundColor": "rgba(239, 68, 68, 0.7)",
                 "borderColor": "rgba(239, 68, 68, 1)"
             })
@@ -388,7 +388,7 @@ def get_trend_chart_data():
 def get_category_chart_data():
     """Enhanced category chart data with type filtering"""
     try:
-        entries = load_expenses()
+        entries = load_transactions()
         
         # Get filters from request
         timeframe = request.args.get('timeframe', default='30', type=str)
@@ -405,8 +405,8 @@ def get_category_chart_data():
         
         # Group by category and type
         categories = {
-            'income': defaultdict(float),
-            'expense': defaultdict(float)
+            'credit': defaultdict(float),
+            'debit': defaultdict(float)
         }
         
         for entry in filtered:
@@ -423,16 +423,16 @@ def get_category_chart_data():
         }
         
         # Add categories based on selected type
-        if chart_type in ['all', 'expense']:
-            for category, amount in categories['expense'].items():
+        if chart_type in ['all', 'debit']:
+            for category, amount in categories['debit'].items():
                 response['labels'].append(category)
                 response['datasets'][0]['data'].append(amount)
                 response['datasets'][0]['backgroundColor'].append(
                     get_category_color(category, False)
                 )
         
-        if chart_type in ['all', 'income']:
-            for category, amount in categories['income'].items():
+        if chart_type in ['all', 'credit']:
+            for category, amount in categories['credit'].items():
                 response['labels'].append(category)
                 response['datasets'][0]['data'].append(amount)
                 response['datasets'][0]['backgroundColor'].append(
@@ -444,10 +444,10 @@ def get_category_chart_data():
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
-def get_category_color(category, is_income=False):
+def get_category_color(category, is_credit=False):
     """Helper to get consistent category colors"""
     color_map = {
-        # Expense categories
+        # Debit categories
         'Food & Dining': 'rgba(239, 68, 68, 0.7)',
         'Transport': 'rgba(59, 130, 246, 0.7)',
         'Shopping': 'rgba(168, 85, 247, 0.7)',
@@ -458,29 +458,30 @@ def get_category_color(category, is_income=False):
         'Health': 'rgba(234, 179, 8, 0.7)',
         'Miscellaneous': 'rgba(156, 163, 175, 0.7)',
         
-        # Income categories
+        # Credit categories
         'Salary': 'rgba(16, 185, 129, 0.7)',
         'Freelance': 'rgba(20, 184, 166, 0.7)',
         'Refunds/Cashbacks': 'rgba(99, 102, 241, 0.7)',
         'Other Income': 'rgba(132, 204, 22, 0.7)'
     }
     return color_map.get(category, 
-                       'rgba(132, 204, 22, 0.7)' if is_income else 'rgba(156, 163, 175, 0.7)')
+                       'rgba(132, 204, 22, 0.7)' if is_credit else 'rgba(156, 163, 175, 0.7)')
 
-@app.route('/api/expenses/export/csv')
+@app.route('/api/transactions/export/csv')
 def export_csv():
-    """Exports expenses as CSV."""
+    """Exports transactions as CSV."""
     try:
         output = []
-        output.append(['ID', 'Date', 'Description', 'Category', 'Amount'])
-        entries = load_expenses()
-        for expense in entries:
+        output.append(['ID', 'Date', 'Description', 'Category', 'Type', 'Amount'])
+        entries = load_transactions()
+        for entry in entries:
             output.append([
-                expense['id'],
-                expense['date'],
-                expense['description'],
-                expense['category'],
-                expense['amount']
+                entry['id'],
+                entry['date'],
+                entry['description'],
+                entry['category'],
+                'Credit' if entry['type'] == 'credit' else 'Debit',
+                entry['amount']
             ])
 
         # Create in-memory CSV
@@ -493,7 +494,7 @@ def export_csv():
             200,
             {
                 'Content-Type': 'text/csv',
-                'Content-Disposition': f'attachment; filename=expenses_{datetime.now().strftime("%Y%m%d")}.csv'
+                'Content-Disposition': f'attachment; filename=transactions_{datetime.now().strftime("%Y%m%d")}.csv'
             }
         )
     except Exception as e:

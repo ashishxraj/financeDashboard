@@ -2,8 +2,8 @@
 // Constants
 const API_BASE_URL = '';
 const ITEMS_PER_PAGE = 5;
-const INCOME_CATEGORIES = ['Salary', 'Freelance', 'Refunds/Cashbacks', 'Other Income'];
-const EXPENSE_CATEGORIES = ['Food & Dining', 'Transport', 'Shopping', 'Bills & Utilities','Education / Learning', 'Household and Transfers', 'Entertainment', 'Health', "Miscellaneous"];
+const CREDIT_CATEGORIES = ['Salary', 'Freelance', 'Refunds/Cashbacks', 'Other Income'];
+const DEBIT_CATEGORIES = ['Food & Dining', 'Transport', 'Shopping', 'Bills & Utilities','Education / Learning', 'Household and Transfers', 'Entertainment', 'Health', "Miscellaneous"];
 
 // Global variables
 let entries = [];
@@ -32,11 +32,6 @@ document.addEventListener('DOMContentLoaded', function() {
         dateFormat: "Y-m-d"
     });
     
-    // Mobile menu toggle
-    document.getElementById('mobileMenuButton').addEventListener('click', function() {
-        document.querySelector('.sidebar').classList.toggle('active');
-    });
-    
     // Initialize FAB functionality
     setupFloatingActionButtons();
     
@@ -45,8 +40,8 @@ document.addEventListener('DOMContentLoaded', function() {
     loadSummary();
     
     // Form submissions
-    document.getElementById('expenseForm').addEventListener('submit', addExpense);
-    document.getElementById('incomeForm').addEventListener('submit', addIncome);
+    document.getElementById('expenseForm').addEventListener('submit', addDebit);
+    document.getElementById('incomeForm').addEventListener('submit', addCredit);
     document.getElementById('editEntryForm').addEventListener('submit', updateEntry);
     
     // Export buttons
@@ -76,51 +71,82 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Modal controls
     setupModalControls();
+    
+    // Dark mode toggle
+    document.getElementById('themeToggle')?.addEventListener('click', toggleDarkMode);
+    document.getElementById('themeToggleDesktop')?.addEventListener('click', toggleDarkMode);
 });
+
+function toggleDarkMode() {
+    document.documentElement.classList.toggle('dark');
+    localStorage.setItem('darkMode', document.documentElement.classList.contains('dark'));
+}
 
 // Setup Floating Action Buttons
 function setupFloatingActionButtons() {
-    // Expense FAB
-    const fabExpense = document.getElementById('fabExpense');
-    const expenseFormContainer = document.getElementById('expenseFormContainer');
-    const closeExpenseForm = document.getElementById('closeExpenseForm');
+    // Debit FAB
+    const fabDebit = document.getElementById('fabExpense');
+    const debitFormContainer = document.getElementById('expenseFormContainer');
+    const closeDebitForm = document.getElementById('closeExpenseForm');
     
-    fabExpense.addEventListener('click', () => {
-        expenseFormContainer.classList.add('active');
+    fabDebit?.addEventListener('click', () => {
+        debitFormContainer.classList.add('active');
         flatpickr("#expenseDate", {
             dateFormat: "Y-m-d",
             defaultDate: "today"
         });
     });
     
-    closeExpenseForm.addEventListener('click', () => {
-        expenseFormContainer.classList.remove('active');
+    closeDebitForm?.addEventListener('click', () => {
+        debitFormContainer.classList.remove('active');
     });
     
-    // Income FAB
-    const fabIncome = document.getElementById('fabIncome');
-    const incomeFormContainer = document.getElementById('incomeFormContainer');
-    const closeIncomeForm = document.getElementById('closeIncomeForm');
+    // Credit FAB
+    const fabCredit = document.getElementById('fabIncome');
+    const creditFormContainer = document.getElementById('incomeFormContainer');
+    const closeCreditForm = document.getElementById('closeIncomeForm');
     
-    fabIncome.addEventListener('click', () => {
-        incomeFormContainer.classList.add('active');
+    fabCredit?.addEventListener('click', () => {
+        creditFormContainer.classList.add('active');
         flatpickr("#incomeDate", {
             dateFormat: "Y-m-d",
             defaultDate: "today"
         });
     });
     
-    closeIncomeForm.addEventListener('click', () => {
-        incomeFormContainer.classList.remove('active');
+    closeCreditForm?.addEventListener('click', () => {
+        creditFormContainer.classList.remove('active');
     });
     
+    // Desktop Debit FAB
+    const fabDebitDesktop = document.getElementById('fabExpenseDesktop');
+    fabDebitDesktop?.addEventListener('click', (e) => {
+        e.stopPropagation();
+        debitFormContainer.classList.add('active');
+        flatpickr("#expenseDate", {
+            dateFormat: "Y-m-d",
+            defaultDate: "today"
+        });
+    });
+
+    // Desktop Credit FAB
+    const fabCreditDesktop = document.getElementById('fabIncomeDesktop');
+    fabCreditDesktop?.addEventListener('click', (e) => {
+        e.stopPropagation();
+        creditFormContainer.classList.add('active');
+        flatpickr("#incomeDate", {
+            dateFormat: "Y-m-d",
+            defaultDate: "today"
+        });
+    });
+
     // Close forms when clicking outside
     document.addEventListener('click', (e) => {
-        if (!expenseFormContainer.contains(e.target) && e.target !== fabExpense) {
-            expenseFormContainer.classList.remove('active');
+        if (debitFormContainer && !debitFormContainer.contains(e.target) && e.target !== fabDebit) {
+            debitFormContainer.classList.remove('active');
         }
-        if (!incomeFormContainer.contains(e.target) && e.target !== fabIncome) {
-            incomeFormContainer.classList.remove('active');
+        if (creditFormContainer && !creditFormContainer.contains(e.target) && e.target !== fabCredit) {
+            creditFormContainer.classList.remove('active');
         }
     });
 }
@@ -128,22 +154,22 @@ function setupFloatingActionButtons() {
 // Setup Modal Controls
 function setupModalControls() {
     // Delete Modal
-    document.getElementById('closeDeleteModal').addEventListener('click', () => {
+    document.getElementById('closeDeleteModal')?.addEventListener('click', () => {
         document.getElementById('deleteModal').classList.add('hidden');
     });
     
-    document.getElementById('cancelDelete').addEventListener('click', () => {
+    document.getElementById('cancelDelete')?.addEventListener('click', () => {
         document.getElementById('deleteModal').classList.add('hidden');
     });
     
-    document.getElementById('confirmDelete').addEventListener('click', confirmDeleteEntry);
+    document.getElementById('confirmDelete')?.addEventListener('click', confirmDeleteEntry);
     
     // Edit Modal
-    document.getElementById('closeEditModal').addEventListener('click', () => {
+    document.getElementById('closeEditModal')?.addEventListener('click', () => {
         document.getElementById('editModal').classList.add('hidden');
     });
     
-    document.getElementById('cancelEdit').addEventListener('click', () => {
+    document.getElementById('cancelEdit')?.addEventListener('click', () => {
         document.getElementById('editModal').classList.add('hidden');
     });
 }
@@ -198,26 +224,26 @@ async function loadSummary() {
         const summary = await response.json();
         
         // Update top 4 cards
-        document.getElementById('totalIncome').textContent = `₹${summary.total_income.toFixed(2)}`;
-        document.getElementById('totalExpenses').textContent = `₹${summary.total_expenses.toFixed(2)}`;
-        document.getElementById('netSavings').textContent = `₹${summary.net_savings.toFixed(2)}`;
+        document.getElementById('totalIncome').textContent = `₹${summary.total_credits.toFixed(2)}`;
+        document.getElementById('totalExpenses').textContent = `₹${summary.total_debits.toFixed(2)}`;
+        document.getElementById('netSavings').textContent = `₹${summary.net_balance.toFixed(2)}`;
         document.getElementById('dailyAverage').textContent = `₹${summary.daily_average.toFixed(2)}`;
         
         // Update percentage changes
-        updatePercentageChange('totalIncome', summary.percent_change_income);
-        updatePercentageChange('totalExpenses', summary.percent_change_expenses);
-        updatePercentageChange('netSavings', summary.percent_change_savings);
-        updatePercentageChange('dailyAverage', summary.percent_change_daily);
+        updatePercentageChange('incomeChange', summary.percent_change_credits);
+        updatePercentageChange('expenseChange', summary.percent_change_debits);
+        updatePercentageChange('balanceChange', summary.percent_change_balance);
+        updatePercentageChange('dailyChange', summary.percent_change_daily);
         
         // Update lower 4 cards
-        updateHighestDisplay(summary.highest_spending_day, 'highestSpendingDay', 'spending', 'day');
-        updateHighestDisplay(summary.highest_income_day, 'highestIncomeDay', 'income', 'day');
-        updateHighestDisplay(summary.highest_spending_category, 'highestSpendingCategory', 'spending', 'category');
-        updateHighestDisplay(summary.highest_income_category, 'highestIncomeCategory', 'income', 'category');
+        updateHighestDisplay(summary.highest_debit_day, 'highestSpendingDay', 'debit', 'day');
+        updateHighestDisplay(summary.highest_credit_day, 'highestIncomeDay', 'credit', 'day');
+        updateHighestDisplay(summary.highest_debit_category, 'highestSpendingCategory', 'debit', 'category');
+        updateHighestDisplay(summary.highest_credit_category, 'highestIncomeCategory', 'credit', 'category');
         
         // Color net savings based on value
         const netSavingsEl = document.getElementById('netSavings');
-        if (summary.net_savings >= 0) {
+        if (summary.net_balance >= 0) {
             netSavingsEl.classList.remove('text-danger-500');
             netSavingsEl.classList.add('text-success-500');
         } else {
@@ -230,9 +256,9 @@ async function loadSummary() {
     }
 }
 
-function updatePercentageChange(cardType, percentChange) {
-    const card = document.getElementById(cardType).closest('.card');
-    const changeElement = card.querySelector('p.text-xs');
+function updatePercentageChange(elementId, percentChange) {
+    const changeElement = document.getElementById(elementId);
+    if (!changeElement) return;
     
     const absPercent = Math.abs(percentChange);
     const arrowIcon = percentChange >= 0 ? 'fa-arrow-up' : 'fa-arrow-down';
@@ -243,91 +269,32 @@ function updatePercentageChange(cardType, percentChange) {
             <i class="fas ${arrowIcon}"></i>
             ${absPercent}%
         </span>
-        <span class="text-gray-500"> from last month</span>
+        <span class="text-gray-500 dark:text-gray-400"> from last month</span>
     `;
 }
 
 function updateHighestDisplay(data, elementId, type, labelType) {
-    const element = document.getElementById(elementId);
-    const card = element.closest('.card');
-    
-    if (data) {
-        // Update the title (h3)
-        const titleElement = card.querySelector('h3');
-        titleElement.innerHTML = `₹${data.value.toFixed(2)}`;
-        
-        // Update the subtitle (p)
-        const subtitleElement = card.querySelector('p.text-sm');
-        subtitleElement.textContent = data.key;
-        
-        // Update the footer text
-        const footerElement = card.querySelector('p.text-xs');
-        footerElement.innerHTML = `
-            <span class="text-gray-500">Highest ${type} ${labelType}</span>
-        `;
-        
-        // Update the icon color if needed
-        const iconElement = card.querySelector('div > div');
-        iconElement.className = `p-3 rounded-lg ${type === 'income' ? 'bg-success-100 text-success-500' : 'bg-danger-100 text-danger-500'}`;
-    } else {
-        const titleElement = card.querySelector('h3');
-        titleElement.innerHTML = `<i class="fas ${labelType === 'category' ? 'fa-tags' : 'fa-calendar-day'}"></i>`;
-        
-        const subtitleElement = card.querySelector('p.text-sm');
-        subtitleElement.textContent = 'No data available';
-        
-        const footerElement = card.querySelector('p.text-xs');
-        footerElement.innerHTML = `
-            <span class="text-gray-500">Highest ${type} ${labelType}</span>
-        `;
-    }
-}
+    const valueEl = document.getElementById(`${elementId}Value`);
+    const labelEl = document.getElementById(`${elementId}Label`);
+    if (!valueEl || !labelEl) return;
 
-function updatePercentageChange(cardType, percentChange) {
-    const card = document.getElementById(cardType).closest('.card');
-    const changeElement = card.querySelector('p.text-xs'); // Target the existing percentage element
-    
-    const absPercent = Math.abs(percentChange);
-    const arrowIcon = percentChange >= 0 ? 'fa-arrow-up' : 'fa-arrow-down';
-    const textColor = percentChange >= 0 ? 'text-success-500' : 'text-danger-500';
-    
-    changeElement.innerHTML = `
-        <span class="${textColor}">
-            <i class="fas ${arrowIcon}"></i>
-            ${absPercent}%
-        </span>
-        <span class="text-gray-500"> from last month</span>
-    `;
-}
-
-// Update highest spending/income displays
-function updateHighestSpendingDisplay(data, elementId) {
-    const element = document.getElementById(elementId);
     if (data && data.amount > 0) {
-        element.innerHTML = `
-            <div class="text-center">
-                <div class="text-4xl font-bold ${elementId.includes('income') ? 'text-green-600' : 'text-danger-500'} mb-2">
-                    ₹${data.amount.toFixed(2)}
-                </div>
-                <p class="text-gray-700">${data.category || data.date}</p>
-                <p class="text-sm text-gray-500 mt-1">${elementId.includes('Category') ? 'Category' : 'Day'}</p>
-            </div>
-        `;
+        // Set value
+        valueEl.textContent = `₹${data.amount.toFixed(2)}`;
+        // Set label (the key, e.g. date or category)
+        labelEl.textContent = data.date || data.category || 'N/A';
     } else {
-        element.innerHTML = `
-            <div class="text-center">
-                <div class="text-4xl font-bold ${elementId.includes('income') ? 'text-green-600' : 'text-danger-500'} mb-2">
-                    <i class="fas ${elementId.includes('Category') ? 'fa-tags' : 'fa-calendar-day'}"></i>
-                </div>
-                <p class="text-gray-500">No data available</p>
-            </div>
-        `;
+        // Set value to 0
+        valueEl.textContent = '₹0.00';
+        // Set label to "No data available"
+        labelEl.textContent = 'No data available';
     }
 }
 
 // Render entries to the table with pagination
 function renderEntries() {
     const tableBody = document.getElementById('expenseTableBody');
+    if (!tableBody) return;
     
     // Calculate pagination
     const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
@@ -349,8 +316,8 @@ function renderEntries() {
     if (paginatedEntries.length === 0) {
         const row = document.createElement('tr');
         row.innerHTML = `
-            <td colspan="6" class="px-6 py-4 text-center text-gray-500">
-                No entries found
+            <td colspan="5" class="px-4 py-3 text-center text-gray-500 dark:text-gray-400">
+                No transactions found
             </td>
         `;
         tableBody.appendChild(row);
@@ -360,30 +327,25 @@ function renderEntries() {
     // Add new rows
     paginatedEntries.forEach(entry => {
         const row = document.createElement('tr');
-        row.className = 'hover:bg-gray-50';
+        row.className = 'hover:bg-gray-50 dark:hover:bg-gray-700';
         
         // Determine amount color and icon based on type
-        const isIncome = entry.type === 'income';
-        const amountColor = isIncome ? 'text-green-600' : 'text-danger-500';
-        const amountIcon = isIncome ? 'fa-plus-circle' : 'fa-minus-circle';
+        const isCredit = entry.type === 'credit';
+        const amountColor = isCredit ? 'text-success-500' : 'text-danger-500';
+        const amountIcon = isCredit ? 'fa-plus-circle' : 'fa-minus-circle';
         
         row.innerHTML = `
-            <td class="px-6 py-4 whitespace-nowrap">${entry.date}</td>
-            <td class="px-6 py-4 whitespace-nowrap">${entry.description}</td>
-            <td class="px-6 py-4 whitespace-nowrap">
-                <span class="px-2 py-1 text-xs rounded-full ${getCategoryColor(entry.category, isIncome)}">
+            <td class="px-4 py-3 whitespace-nowrap">${entry.date}</td>
+            <td class="px-4 py-3 whitespace-nowrap">${entry.description}</td>
+            <td class="px-4 py-3 whitespace-nowrap">
+                <span class="px-2 py-1 text-xs rounded-full ${getCategoryColor(entry.category, isCredit)}">
                     ${entry.category}
                 </span>
             </td>
-            <td class="px-6 py-4 whitespace-nowrap ${amountColor}">
+            <td class="px-4 py-3 whitespace-nowrap ${amountColor}">
                 <i class="fas ${amountIcon} mr-1"></i> ₹${parseFloat(entry.amount).toFixed(2)}
             </td>
-            <td class="px-6 py-4 whitespace-nowrap">
-                <span class="px-2 py-1 text-xs rounded-full ${isIncome ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}">
-                    ${isIncome ? 'Income' : 'Expense'}
-                </span>
-            </td>
-            <td class="px-6 py-4 whitespace-nowrap">
+            <td class="px-4 py-3 whitespace-nowrap">
                 <button class="text-primary-500 hover:text-primary-700 mr-3 edit-btn" data-id="${entry.id}">
                     <i class="fas fa-edit"></i>
                 </button>
@@ -412,29 +374,29 @@ function renderEntries() {
 }
 
 // Get color class for category badge
-function getCategoryColor(category, isIncome = false) {
+function getCategoryColor(category, isCredit = false) {
     const colors = {
-        'Food & Dining': 'bg-orange-100 text-orange-800',
-        'Transport': 'bg-blue-100 text-blue-800',
-        'Shopping': 'bg-purple-100 text-purple-800',
-        'Bills & Utilities': 'bg-green-100 text-green-800',
-        'Education / Learning': 'bg-teal-100 text-teal-800',
-        'Entertainment': 'bg-pink-100 text-pink-800',
-        'Household and Transfers': 'bg-red-100 text-red-800',
-        'Health': 'bg-yellow-100 text-yellow-800',
-        'Miscellaneous': 'bg-gray-100 text-gray-800',
-        'Salary': 'bg-green-100 text-green-800',
-        'Freelance': 'bg-teal-100 text-teal-800',
-        'Refunds/Cashbacks': 'bg-indigo-100 text-indigo-800',
-        'Other Income': 'bg-lime-100 text-lime-800',
+        'Food & Dining': 'bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-200',
+        'Transport': 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200',
+        'Shopping': 'bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200',
+        'Bills & Utilities': 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200',
+        'Education / Learning': 'bg-teal-100 text-teal-800 dark:bg-teal-900 dark:text-teal-200',
+        'Entertainment': 'bg-pink-100 text-pink-800 dark:bg-pink-900 dark:text-pink-200',
+        'Household and Transfers': 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200',
+        'Health': 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200',
+        'Miscellaneous': 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-200',
+        'Salary': 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200',
+        'Freelance': 'bg-teal-100 text-teal-800 dark:bg-teal-900 dark:text-teal-200',
+        'Refunds/Cashbacks': 'bg-indigo-100 text-indigo-800 dark:bg-indigo-900 dark:text-indigo-200',
+        'Other Income': 'bg-lime-100 text-lime-800 dark:bg-lime-900 dark:text-lime-200',
     };
     
-    // Default to income style if category not found but entry is income
-    if (isIncome && !colors[category]) {
-        return 'bg-green-100 text-green-800';
+    // Default to credit style if category not found but entry is credit
+    if (isCredit && !colors[category]) {
+        return 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200';
     }
     
-    return colors[category] || 'bg-gray-100 text-gray-800';
+    return colors[category] || 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-200';
 }
 
 // Render trend chart
@@ -458,6 +420,7 @@ async function renderTrendChart() {
                 labels: chartData.labels,
                 datasets: chartData.datasets.map(ds => ({
                     ...ds,
+                    label: ds.label === 'Income' ? 'Credits' : ds.label === 'Expense' ? 'Debits' : ds.label,
                     borderWidth: 1
                 }))
             },
@@ -465,9 +428,19 @@ async function renderTrendChart() {
                 responsive: true,
                 maintainAspectRatio: false,
                 plugins: {
+                    legend: {
+                        labels: {
+                            color: '#1e293b'
+                        }
+                    },
                     title: {
                         display: true,
-                        text: `${chartType === 'hybrid' ? 'Income & Expense' : chartType.charAt(0).toUpperCase() + chartType.slice(1)} Trend`
+                        text: `${chartType === 'hybrid' ? 'Credit & Debit' : chartType.charAt(0).toUpperCase() + chartType.slice(1)} Trend`,
+                        font: {
+                            size: 14,
+                            weight: '500'
+                        },
+                        color: '#1e293b'
                     },
                     tooltip: {
                         callbacks: {
@@ -483,17 +456,21 @@ async function renderTrendChart() {
                         ticks: {
                             callback: function(value) {
                                 return `₹${value}`;
-                            }
+                            },
+                            color: '#64748b'
+                        },
+                        grid: {
+                            color: '#e2e8f0'
                         }
                     },
                     x: {
-                        stacked: chartType === 'hybrid', // Stacked only in hybrid mode
+                        stacked: chartType === 'hybrid',
                         grid: {
                             display: false
+                        },
+                        ticks: {
+                            color: '#64748b'
                         }
-                    },
-                    y: {
-                        stacked: chartType === 'hybrid' // Stacked only in hybrid mode
                     }
                 }
             }
@@ -535,7 +512,8 @@ async function renderCategoryChart() {
                 plugins: {
                     title: {
                         display: true,
-                        text: 'Category Breakdown'
+                        text: 'Category Breakdown',
+                        color: '#1e293b'
                     },
                     tooltip: {
                         callbacks: {
@@ -551,7 +529,8 @@ async function renderCategoryChart() {
                         position: 'right',
                         labels: {
                             boxWidth: 12,
-                            padding: 20
+                            padding: 20,
+                            color: '#1e293b'
                         }
                     }
                 },
@@ -564,36 +543,36 @@ async function renderCategoryChart() {
     }
 }
 
-// Update splurge info (highest spending/income)
+// Update splurge info (highest spending/credit)
 function updateSplurgeInfo() {
     // Group by day and type
-    const dailyExpenses = {};
-    const dailyIncomes = {};
-    const expenseCategories = {};
-    const incomeCategories = {};
+    const dailyDebits = {};
+    const dailyCredits = {};
+    const debitCategories = {};
+    const creditCategories = {};
     
     entries.forEach(entry => {
         const amount = parseFloat(entry.amount);
-        if (entry.type === 'income') {
-            dailyIncomes[entry.date] = (dailyIncomes[entry.date] || 0) + amount;
-            incomeCategories[entry.category] = (incomeCategories[entry.category] || 0) + amount;
+        if (entry.type === 'credit') {
+            dailyCredits[entry.date] = (dailyCredits[entry.date] || 0) + amount;
+            creditCategories[entry.category] = (creditCategories[entry.category] || 0) + amount;
         } else {
-            dailyExpenses[entry.date] = (dailyExpenses[entry.date] || 0) + amount;
-            expenseCategories[entry.category] = (expenseCategories[entry.category] || 0) + amount;
+            dailyDebits[entry.date] = (dailyDebits[entry.date] || 0) + amount;
+            debitCategories[entry.category] = (debitCategories[entry.category] || 0) + amount;
         }
     });
     
-    // Find highest spending/income days and categories
-    const highestSpendingDay = findMaxEntry(dailyExpenses);
-    const highestIncomeDay = findMaxEntry(dailyIncomes);
-    const highestSpendingCategory = findMaxEntry(expenseCategories);
-    const highestIncomeCategory = findMaxEntry(incomeCategories);
+    // Find highest debit/credit days and categories
+    const highestDebitDay = findMaxEntry(dailyDebits);
+    const highestCreditDay = findMaxEntry(dailyCredits);
+    const highestDebitCategory = findMaxEntry(debitCategories);
+    const highestCreditCategory = findMaxEntry(creditCategories);
     
     // Update UI
-    updateHighestDisplay(highestSpendingDay, 'highestSpendingDay', 'spending', 'day');
-    updateHighestDisplay(highestIncomeDay, 'highestIncomeDay', 'income', 'day');
-    updateHighestDisplay(highestSpendingCategory, 'highestSpendingCategory', 'spending', 'category');
-    updateHighestDisplay(highestIncomeCategory, 'highestIncomeCategory', 'income', 'category');
+    updateHighestDisplay(highestDebitDay, 'highestSpendingDay', 'debit', 'day');
+    updateHighestDisplay(highestCreditDay, 'highestIncomeDay', 'credit', 'day');
+    updateHighestDisplay(highestDebitCategory, 'highestSpendingCategory', 'debit', 'category');
+    updateHighestDisplay(highestCreditCategory, 'highestIncomeCategory', 'credit', 'category');
 }
 
 // Helper to find entry with maximum value
@@ -601,31 +580,6 @@ function findMaxEntry(data) {
     if (Object.keys(data).length === 0) return null;
     const [key, value] = Object.entries(data).reduce((a, b) => a[1] > b[1] ? a : b);
     return { key, value };
-}
-
-// Update highest display
-function updateHighestDisplay(data, elementId, type, labelType) {
-    const element = document.getElementById(elementId);
-    if (data) {
-        element.innerHTML = `
-            <div class="text-center">
-                <div class="text-4xl font-bold ${type === 'income' ? 'text-green-600' : 'text-danger-500'} mb-2">
-                    ₹${data.value.toFixed(2)}
-                </div>
-                <p class="text-gray-700">${data.key}</p>
-                <p class="text-sm text-gray-500 mt-1">Highest ${type} ${labelType}</p>
-            </div>
-        `;
-    } else {
-        element.innerHTML = `
-            <div class="text-center">
-                <div class="text-4xl font-bold ${type === 'income' ? 'text-green-600' : 'text-danger-500'} mb-2">
-                    <i class="fas ${labelType === 'category' ? 'fa-tags' : 'fa-calendar-day'}"></i>
-                </div>
-                <p class="text-gray-500">No data available</p>
-            </div>
-        `;
-    }
 }
 
 // Open delete confirmation modal
@@ -666,12 +620,12 @@ function openEditModal(entryId) {
     entryToEdit = entries.find(e => e.id === entryId);
     if (entryToEdit) {
         // Populate form based on entry type
-        const isIncome = entryToEdit.type === 'income';
+        const isCredit = entryToEdit.type === 'credit';
         const form = document.getElementById('editEntryForm');
         
         // Reset and show appropriate category dropdown
         document.getElementById('editEntryCategory').innerHTML = '';
-        const categories = isIncome ? INCOME_CATEGORIES : EXPENSE_CATEGORIES;
+        const categories = isCredit ? CREDIT_CATEGORIES : DEBIT_CATEGORIES;
         categories.forEach(category => {
             const option = document.createElement('option');
             option.value = category;
@@ -696,14 +650,14 @@ function openEditModal(entryId) {
         
         // Update modal title based on type
         document.getElementById('editModalTitle').textContent = 
-            `Edit ${isIncome ? 'Income' : 'Expense'}`;
+            `Edit ${isCredit ? 'Credit' : 'Debit'}`;
             
         document.getElementById('editModal').classList.remove('hidden');
     }
 }
 
-// Add new expense
-async function addExpense(e) {
+// Add new debit
+async function addDebit(e) {
     e.preventDefault();
     
     const date = document.getElementById('expenseDate').value;
@@ -716,21 +670,21 @@ async function addExpense(e) {
         return;
     }
     
-    const newExpense = {
+    const newDebit = {
         date,
         amount,
         category,
         description,
-        type: "expense"
+        type: "debit"
     };
     
     try {
-        const response = await fetch(`/api/expenses`, {
+        const response = await fetch(`/api/debits`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
             },
-            body: JSON.stringify(newExpense)
+            body: JSON.stringify(newDebit)
         });
         
         if (!response.ok) {
@@ -738,21 +692,22 @@ async function addExpense(e) {
             throw new Error(errorData.error || `HTTP error! status: ${response.status}`);
         }
         
-        showToast("Expense added successfully");
+        showToast("Debit recorded successfully");
         document.getElementById('expenseForm').reset();
         document.getElementById('expenseFormContainer').classList.remove('active');
         
         // Reload data
         loadEntries();
         loadSummary();
+
     } catch (error) {
-        console.error("Error adding expense:", error);
-        showToast(`Failed to add expense: ${error.message}`, "error");
+        console.error("Error adding debit:", error);
+        showToast(`Failed to record debit: ${error.message}`, "error");
     }
 }
 
-// Add new income
-async function addIncome(e) {
+// Add new credit
+async function addCredit(e) {
     e.preventDefault();
     
     const date = document.getElementById('incomeDate').value;
@@ -765,21 +720,21 @@ async function addIncome(e) {
         return;
     }
     
-    const newIncome = {
+    const newCredit = {
         date,
         amount,
         category,
         description,
-        type: "income"
+        type: "credit"
     };
     
     try {
-        const response = await fetch(`/api/incomes`, {
+        const response = await fetch(`/api/credits`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
             },
-            body: JSON.stringify(newIncome)
+            body: JSON.stringify(newCredit)
         });
         
         if (!response.ok) {
@@ -787,7 +742,7 @@ async function addIncome(e) {
             throw new Error(errorData.error || `HTTP error! status: ${response.status}`);
         }
         
-        showToast("Income added successfully");
+        showToast("Credit recorded successfully");
         document.getElementById('incomeForm').reset();
         document.getElementById('incomeFormContainer').classList.remove('active');
         
@@ -795,8 +750,8 @@ async function addIncome(e) {
         loadEntries();
         loadSummary();
     } catch (error) {
-        console.error("Error adding income:", error);
-        showToast(`Failed to add income: ${error.message}`, "error");
+        console.error("Error adding credit:", error);
+        showToast(`Failed to record credit: ${error.message}`, "error");
     }
 }
 
@@ -854,7 +809,7 @@ async function updateEntry(e) {
 // Export to CSV
 async function exportToCsv() {
     try {
-        const response = await fetch(`/api/expenses/export/csv`);
+        const response = await fetch(`/api/transactions/export/csv`);
         if (!response.ok) {
             throw new Error(`HTTP error! status: ${response.status}`);
         }
@@ -863,7 +818,7 @@ async function exportToCsv() {
         const url = window.URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
-        a.download = `expenses_${new Date().toISOString().split('T')[0]}.csv`;
+        a.download = `transactions_${new Date().toISOString().split('T')[0]}.csv`;
         document.body.appendChild(a);
         a.click();
         document.body.removeChild(a);
@@ -885,7 +840,7 @@ async function exportToPdf() {
         // Add title
         doc.setFontSize(18);
         doc.setTextColor(40, 40, 40);
-        doc.text('Expense Report', 105, 20, { align: 'center' });
+        doc.text('Transaction Report', 105, 20, { align: 'center' });
         
         // Add date
         doc.setFontSize(10);
@@ -900,9 +855,9 @@ async function exportToPdf() {
         if (summaryResponse.ok) {
             const summary = await summaryResponse.json();
             
-            doc.text(`Total Income: ₹${summary.total_income.toFixed(2)}`, 14, 40);
-            doc.text(`Total Expenses: ₹${summary.total_expenses.toFixed(2)}`, 14, 48);
-            doc.text(`Net Savings: ₹${summary.net_savings.toFixed(2)}`, 14, 56);
+            doc.text(`Total Credits: ₹${summary.total_credits.toFixed(2)}`, 14, 40);
+            doc.text(`Total Debits: ₹${summary.total_debits.toFixed(2)}`, 14, 48);
+            doc.text(`Net Balance: ₹${summary.net_balance.toFixed(2)}`, 14, 56);
             doc.text(`Daily Average: ₹${summary.daily_average.toFixed(2)}`, 14, 64);
         }
         
@@ -912,7 +867,7 @@ async function exportToPdf() {
             entry.date,
             entry.description,
             entry.category,
-            entry.type === 'income' ? 'Income' : 'Expense',
+            entry.type === 'credit' ? 'Credit' : 'Debit',
             `₹${parseFloat(entry.amount).toFixed(2)}`
         ]);
         
@@ -940,7 +895,7 @@ async function exportToPdf() {
         });
         
         // Save the PDF
-        doc.save(`expense_report_${new Date().toISOString().split('T')[0]}.pdf`);
+        doc.save(`transaction_report_${new Date().toISOString().split('T')[0]}.pdf`);
         
         showToast("PDF export completed");
     } catch (error) {
