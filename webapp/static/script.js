@@ -806,14 +806,13 @@ async function updateEntry(e) {
     }
 }
 
-// Export to CSV
+// Export to CSV using backend endpoint
 async function exportToCsv() {
     try {
         const response = await fetch(`/api/transactions/export/csv`);
         if (!response.ok) {
             throw new Error(`HTTP error! status: ${response.status}`);
         }
-        
         const blob = await response.blob();
         const url = window.URL.createObjectURL(blob);
         const a = document.createElement('a');
@@ -823,7 +822,6 @@ async function exportToCsv() {
         a.click();
         document.body.removeChild(a);
         window.URL.revokeObjectURL(url);
-        
         showToast("CSV export started");
     } catch (error) {
         console.error("Error exporting to CSV:", error);
@@ -831,73 +829,23 @@ async function exportToCsv() {
     }
 }
 
-// Export to PDF
+// Export to PDF using backend endpoint
 async function exportToPdf() {
     try {
-        const { jsPDF } = window.jspdf;
-        const doc = new jsPDF();
-        
-        // Add title
-        doc.setFontSize(18);
-        doc.setTextColor(40, 40, 40);
-        doc.text('Transaction Report', 105, 20, { align: 'center' });
-        
-        // Add date
-        doc.setFontSize(10);
-        doc.setTextColor(100, 100, 100);
-        doc.text(`Generated on: ${new Date().toLocaleDateString()}`, 105, 28, { align: 'center' });
-        
-        // Add summary
-        doc.setFontSize(12);
-        doc.setTextColor(40, 40, 40);
-        
-        const summaryResponse = await fetch(`/api/analytics/summary`);
-        if (summaryResponse.ok) {
-            const summary = await summaryResponse.json();
-            
-            doc.text(`Total Credits: ₹${summary.total_credits.toFixed(2)}`, 14, 40);
-            doc.text(`Total Debits: ₹${summary.total_debits.toFixed(2)}`, 14, 48);
-            doc.text(`Net Balance: ₹${summary.net_balance.toFixed(2)}`, 14, 56);
-            doc.text(`Daily Average: ₹${summary.daily_average.toFixed(2)}`, 14, 64);
+        const response = await fetch(`/api/transactions/export/pdf`);
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
         }
-        
-        // Add table
-        const headers = [['Date', 'Description', 'Category', 'Type', 'Amount']];
-        const data = filteredEntries.map(entry => [
-            entry.date,
-            entry.description,
-            entry.category,
-            entry.type === 'credit' ? 'Credit' : 'Debit',
-            `₹${parseFloat(entry.amount).toFixed(2)}`
-        ]);
-        
-        doc.autoTable({
-            head: headers,
-            body: data,
-            startY: 80,
-            theme: 'grid',
-            headStyles: {
-                fillColor: [59, 130, 246], // Primary color
-                textColor: 255,
-                fontStyle: 'bold'
-            },
-            columnStyles: {
-                0: { cellWidth: 25 },
-                1: { cellWidth: 60 },
-                2: { cellWidth: 30 },
-                3: { cellWidth: 20 },
-                4: { cellWidth: 25, halign: 'right' }
-            },
-            styles: {
-                fontSize: 10,
-                cellPadding: 3
-            }
-        });
-        
-        // Save the PDF
-        doc.save(`transaction_report_${new Date().toISOString().split('T')[0]}.pdf`);
-        
-        showToast("PDF export completed");
+        const blob = await response.blob();
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `transactions_${new Date().toISOString().split('T')[0]}.pdf`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        window.URL.revokeObjectURL(url);
+        showToast("PDF export started");
     } catch (error) {
         console.error("Error exporting to PDF:", error);
         showToast("Failed to export to PDF", "error");
